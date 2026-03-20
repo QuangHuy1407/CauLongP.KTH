@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cầu Lông KTH</title>
+<!-- PWA -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cầu Lông">
+<meta name="theme-color" content="#0d0f14">
+<meta name="description" content="App bình chọn & chia tiền đánh cầu lông">
+<!-- Icons -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230d0f14'/><text y='.9em' font-size='80' x='10'>🏸</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏸</text></svg>">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
@@ -323,12 +333,20 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 </div>
 
 <!-- ══════════════════════════════
+     TRANG: LOADING SPLASH
+══════════════════════════════ -->
+<div class="page active" id="pg-splash" style="background:var(--bg);display:flex!important;align-items:center;justify-content:center;flex-direction:column;gap:16px">
+  <div class="logo" style="font-size:38px">Cầu <span>Lông</span></div>
+  <div class="spin"></div>
+</div>
+
+<!-- ══════════════════════════════
      TRANG: ĐĂNG NHẬP
 ══════════════════════════════ -->
-<div class="page active" id="pg-auth">
+<div class="page" id="pg-auth">
   <div class="auth-wrap">
     <div class="logo">Cầu <span>Lông</span></div>
-    <p style="color:var(--muted);font-size:14px;margin:8px 0 36px;line-height:1.6">
+    <p style="color:var(--muted);font-size:14px;margin:8px 0 28px;line-height:1.6">
       Bình chọn &amp; chia tiền đánh cầu<br>
       <strong style="color:var(--accent2)">Không cần đăng ký</strong> — nhập tên &amp; SĐT là xong
     </p>
@@ -337,16 +355,43 @@ const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
       ⚠️ Chưa điền Supabase URL / Key trong file HTML
     </div>
 
-    <div class="fg">
-      <label class="fl">Họ và tên</label>
-      <input class="fi" id="a-name" type="text" placeholder="Nguyễn Văn A" autocomplete="name">
+    <!-- Quick login card (hiện khi có tài khoản đã lưu) -->
+    <div id="quick-login-card" style="display:none;background:rgba(200,255,71,.06);border:1px solid rgba(200,255,71,.2);border-radius:18px;padding:16px;margin-bottom:20px">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tài khoản gần đây</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+        <div id="ql-avatar" class="av" style="width:44px;height:44px;font-size:16px;flex-shrink:0"></div>
+        <div>
+          <div id="ql-name" style="font-size:16px;font-weight:700"></div>
+          <div id="ql-phone" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+        </div>
+      </div>
+      <button onclick="quickLogin()"
+        style="width:100%;padding:13px;border-radius:12px;background:var(--accent);border:none;
+        color:#080d00;font-family:'Be Vietnam Pro',sans-serif;font-size:15px;font-weight:700;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;gap:8px">
+        ⚡ Tiếp tục với tài khoản này
+      </button>
+      <button onclick="showNewLogin()"
+        style="width:100%;margin-top:8px;padding:10px;border-radius:12px;background:none;
+        border:1px solid var(--border);color:var(--muted);font-family:'Be Vietnam Pro',sans-serif;
+        font-size:13px;cursor:pointer">
+        Dùng tài khoản khác
+      </button>
     </div>
-    <div class="fg">
-      <label class="fl">Số điện thoại</label>
-      <input class="fi" id="a-phone" type="tel" placeholder="0912 345 678" autocomplete="tel">
-      <p style="font-size:12px;color:var(--muted);margin-top:8px">Lần sau nhập lại số này → vào ngay, không cần mật khẩu</p>
+
+    <!-- Form đăng nhập mới (ẩn khi có quick login) -->
+    <div id="new-login-form">
+      <div class="fg">
+        <label class="fl">Họ và tên</label>
+        <input class="fi" id="a-name" type="text" placeholder="Nguyễn Văn A" autocomplete="name">
+      </div>
+      <div class="fg">
+        <label class="fl">Số điện thoại</label>
+        <input class="fi" id="a-phone" type="tel" placeholder="0912 345 678" autocomplete="tel">
+        <p style="font-size:12px;color:var(--muted);margin-top:8px">App sẽ ghi nhớ tài khoản — lần sau mở là vào ngay</p>
+      </div>
+      <button class="btn" onclick="doEnter()">Vào app →</button>
     </div>
-    <button class="btn" onclick="doEnter()">Vào app →</button>
   </div>
 </div>
 
@@ -728,13 +773,15 @@ let sessionTab = 'vote';
 
 function init() {
   if (SUPA_URL.includes('YOUR_PROJECT')) {
-    document.getElementById('warn-cfg').style.display = 'block'; return;
+    document.getElementById('warn-cfg').style.display = 'block';
+    goPageDirect('pg-auth'); return;
   }
   db = window.supabase.createClient(SUPA_URL, SUPA_KEY);
+
   const saved = localStorage.getItem('cvUser');
   if (saved) {
     const parsed = JSON.parse(saved);
-    // Kiểm tra profile còn tồn tại trong DB không
+    // Verify profile still exists in DB
     db.from('profiles').select('*').eq('id', parsed.id).single()
       .then(({ data }) => {
         if (data) {
@@ -742,14 +789,67 @@ function init() {
           localStorage.setItem('cvUser', JSON.stringify(me));
           document.getElementById('home-name').textContent = me.name;
           document.getElementById('admin-panel-btn').style.display = me.is_admin ? '' : 'none';
-          goPage('pg-home');
+          goPageDirect('pg-home');
         } else {
-          // Profile bị xóa (chạy lại schema) → xóa cache, bắt đăng nhập lại
           localStorage.removeItem('cvUser');
-          toast('Phiên đăng nhập hết hạn, vui lòng nhập lại SĐT', 'err');
+          showAuthWithQuickLogin(parsed);
         }
+      })
+      .catch(() => {
+        // Offline or error — show quick login using cached data
+        showAuthWithQuickLogin(parsed);
       });
+  } else {
+    goPageDirect('pg-auth');
   }
+}
+
+// Show auth page — with quick login card if there's cached data
+function showAuthWithQuickLogin(cached) {
+  if (cached?.name && cached?.phone) {
+    document.getElementById('quick-login-card').style.display = '';
+    document.getElementById('new-login-form').style.display   = 'none';
+    document.getElementById('ql-name').textContent  = cached.name;
+    document.getElementById('ql-phone').textContent = cached.phone;
+    const av = document.getElementById('ql-avatar');
+    av.textContent = initials(cached.name);
+    av.style.background = ac(cached.id || cached.phone);
+  }
+  goPageDirect('pg-auth');
+}
+
+// Quick login: vào thẳng không cần điền form
+async function quickLogin() {
+  const saved = localStorage.getItem('cvUser');
+  if (!saved) return goPageDirect('pg-auth');
+  const parsed = JSON.parse(saved);
+  load(true);
+  const { data } = await db.from('profiles').select('*').eq('id', parsed.id).single();
+  load(false);
+  if (data) {
+    me = data;
+    localStorage.setItem('cvUser', JSON.stringify(me));
+    document.getElementById('home-name').textContent = me.name;
+    document.getElementById('admin-panel-btn').style.display = me.is_admin ? '' : 'none';
+    toast(`Chào ${me.name}! 🏸`, 'ok');
+    goPage('pg-home');
+  } else {
+    localStorage.removeItem('cvUser');
+    document.getElementById('quick-login-card').style.display = 'none';
+    document.getElementById('new-login-form').style.display   = '';
+    toast('Tài khoản không tìm thấy, vui lòng đăng nhập lại', 'err');
+  }
+}
+
+function showNewLogin() {
+  document.getElementById('quick-login-card').style.display = 'none';
+  document.getElementById('new-login-form').style.display   = '';
+}
+
+// Chuyển trang không animation (dùng khi khởi động)
+function goPageDirect(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
 
 // ═══════════════════════════════════════
